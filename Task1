@@ -1,0 +1,156 @@
+# 1 - Import and Data Loading
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from statistics import correlation
+
+
+df = pd.read_csv("C:\\Users\\CHAITALI JAIN\\Desktop\\googleplaystore_ml_training .csv")
+
+# 2 - Displaying Data Overview
+print(df) # to print only starting and ending part of dataset
+print (df.to_string())# used for printing whole data
+
+print(df.head(20)) # displaying first 20 rows
+print(df.tail(10)) #displaying first 10 rows
+
+print(df.info()) # info about the dataset
+# we use shape attribute to display shape of data i.e tuple of rows and columns
+print(df.shape)
+# we can also only print the columns names of our dataframe.
+print(df.columns)
+
+# 3 - Data Cleaning and Wrangling
+
+# the rename() method help to rename all columns of a dataframe
+df.rename(columns = {"Size": "Dimension",
+                      "Cost": "Price"
+                        },inplace = True)
+print(df.columns)
+
+# Handling Missing Values
+# we will handle nulls values in each column of our dataset.
+# isnull() returns a DataFrame with each cell either True or False depending on cell's null Status.
+# we can use sum attribute to count the number of null in our dataset
+
+print(df.isnull().sum())
+df = df.dropna() # drop rows with any null values
+#now we will drop duplicate rows
+df = df.drop_duplicates()
+
+# we use mean() to fill the integer null values in column
+#mean_val = df["Column_name"].mean()
+#df["Column_name"].fillna(value = mean_val, inplace = True)
+
+
+# Handling Data Types
+
+#converting "Reviews" to "numeric"
+df["Reviews"] = pd.to_numeric(df['Reviews'], errors="coerce")
+#removing "+" and "," from "Installs" and converting them to numeric
+df["Installs"] = df["Installs"].str.replace("+", "").str.replace(",", "").astype(float)
+# converting "price" to numeric by removing "$"
+df["Price"] = df["Price"].str.replace("$", "").astype(float)
+#convert last updated to datetime
+df["LastUpdated"] = pd.to_datetime(df["LastUpdated"])
+
+#remove "M" and"K" and convert to float
+def convert_size(size):
+    if "M" in size:
+        return float(size.replace("M", "")) * 1e6
+    elif "k" in size:
+        return float(size.replace("k", "")) * 1e3
+    else:
+        return np.nan
+
+df["Size"] = df["Size"].apply(lambda x: convert_size(x) if isinstance(x, str) else x)
+
+
+# 4 - STATISTICS SUMMARY
+print(df.describe())
+# for summary statistics
+print(df.describe(include = "all"))
+
+#now lets seperate numerical and categorical value
+# grouping and aggregating the data 
+cat_data=df.select_dtypes(include=['object']).columns
+num_data = df.select_dtypes(include=np.number).columns.tolist()
+print("Categorical Variables:")
+print(cat_data)
+print("Numerical Variables:")
+print(num_data)
+
+#correlation analysis
+correlation = df[["Rating", "Reviews", "Size", "Installs", "Price"]].corr()
+
+# 5 - EDA Exploratory Data Analysis
+# now our data is ready for analysis therefore will be doing analyze and visualize the dataset by using matplotlib library
+
+# Pie Chart
+plt.figure(figsize=[7,10]) #help to set the size of chart
+df["ContentRating"].value_counts().plot.pie()
+plt.show()
+
+# bar plot : sns.barplot()
+plt.figure(figsize=(10,10))
+sns.barplot(x = "Category" , y = "Installs", data=df, estimator=np.mean, errorbar = ("ci",100))
+plt.xticks(rotation = 90)
+plt.title = ('Average Installs by Category')
+plt.show()
+# we plot a horizontal bar chart
+plt.figure(figsize=[9,7])
+df["ContentRating"].value_counts().plot.barh()
+plt.show()
+
+# LINE PLOT
+# Convert "Last Update" to datetime
+df["LastUpdated"] = pd.to_datetime(df["LastUpdated"])
+# Extract the year from "Last Update"
+df["Year"] = df["LastUpdated"].dt.year
+# Calculate the average rating per year
+average_rating_per_year = df.groupby("Year")["Rating"].mean().reset_index()
+# Define the trend label
+Trend = "Trend"
+
+# Plot the line chart
+plt.figure(figsize=(10, 6))
+# Add a trend line
+sns.lineplot(x="Year", y="Rating", data=average_rating_per_year, color="r", label=Trend)
+
+# Add labels and title
+plt.xlabel("Year")
+plt.ylabel("Average Rating")
+plt.title("Average rating of apps over time")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# SCATTER PLOT
+# I use pair plot which is matrix of scatter plots for multiple pairs of variables.
+plt.figure(figsize = (12,8))
+sns.pairplot(df[["Rating", "Reviews", "Size", "Installs", "Price"]])
+plt.title("Pair plot of Numerical Features")
+plt.show()
+
+# Plot histograms for numerical features
+num_features = ["Rating", "Reviews", "Size", "Installs", "Price"]
+plt.figure(figsize=(15, 10))
+for i, feature in enumerate(num_features, 1):
+    plt.subplot(2, 3, i)  # 2 rows, 3 columns, i-th subplot
+    plt.hist(df[feature].dropna(), bins=30, edgecolor='k', alpha=0.7)
+    plt.title(f"Histogram of {feature}")
+    plt.xlabel(feature)
+    plt.ylabel("Frequency")
+
+plt.tight_layout()
+plt.show()
+
+# HEAT MAP -
+# Plot the heatmap
+plt.figure(figsize=(10, 6))
+sns.heatmap(correlation, annot=True, cmap="coolwarm")
+plt.show()
+
+# end ---------------------------------------------------------------
+
